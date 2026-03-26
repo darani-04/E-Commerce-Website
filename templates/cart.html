@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Your Cart{% endblock %}
+
+{% block styles %}
+<style>
+    .cart-page-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .cart-page-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .cart-page-img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 20px;
+    }
+    .cart-page-details {
+        flex: 1;
+    }
+    .cart-page-price {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+    .cart-page-total {
+        margin-top: 20px;
+        text-align: right;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-page-container">
+    <h1 id="cartPageHeader" style="color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 10px;">Your Shopping Cart</h1>
+    <div id="fullCartContent">
+        <div class="loading-spinner">Loading cart...</div>
+    </div>
+    <div class="cart-page-total" id="fullCartTotal" style="display: none;">
+        Subtotal: <span>$0.00</span>
+    </div>
+    <button class="btn btn-primary" id="fullCheckoutBtn" style="display: none; width: 100%; margin-top: 20px; font-size: 1.2em;">Proceed to Checkout</button>
+    <div id="fullCheckoutMessage" style="text-align: center; margin-top: 10px; font-weight: bold;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const fullCartContent = document.getElementById('fullCartContent');
+        const fullCartTotal = document.getElementById('fullCartTotal');
+        const fullCheckoutBtn = document.getElementById('fullCheckoutBtn');
+        const fullCheckoutMessage = document.getElementById('fullCheckoutMessage');
+
+        async function renderFullCart() {
+            try {
+                // Fetch user info to update header
+                const userRes = await fetch('/api/user');
+                const userData = await userRes.json();
+                if (userData.loggedIn && userData.username) {
+                    document.getElementById('cartPageHeader').textContent = `${userData.username}'s Shopping Cart`;
+                }
+
+                const response = await fetch('/api/cart');
+                if (response.status === 401) {
+                    fullCartContent.innerHTML = '<h3>Please sign in to view your cart.</h3>';
+                    return;
+                }
+                const cart = await response.json();
+                
+                if (cart.length === 0) {
+                    fullCartContent.innerHTML = '<h3>Your cart is empty. Start shopping!</h3>';
+                    fullCartTotal.style.display = 'none';
+                    fullCheckoutBtn.style.display = 'none';
+                    return;
+                }
+
+                let total = 0;
+                fullCartContent.innerHTML = '';
+                
+                cart.forEach(item => {
+                    total += item.price * item.quantity;
+                    const el = document.createElement('div');
+                    el.className = 'cart-page-item';
+                    
+                    const priceFormatted = `₹${item.price.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    
+                    el.innerHTML = `
+                        <img src="${item.image_url}" class="cart-page-img" alt="${item.name}">
+                        <div class="cart-page-details">
+                            <h3>${item.name}</h3>
+                            <div class="cart-page-price">${priceFormatted}</div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-secondary small-btn" onclick="updateAndRefresh(${item.cart_id}, 'decrease')">-</button>
+                                <span style="margin: 0 10px; font-size: 1.2rem;">${item.quantity}</span>
+                                <button class="btn btn-secondary small-btn" onclick="updateAndRefresh(${item.cart_id}, 'increase')">+</button>
+                                <button class="btn btn-link" style="color: red; margin-left: 20px;" onclick="updateAndRefresh(${item.cart_id}, 'remove')">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                    fullCartContent.appendChild(el);
+                });
+                
+                fullCartTotal.style.display = 'block';
+                fullCartTotal.querySelector('span').textContent = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                fullCheckoutBtn.style.display = 'block';
+            } catch (err) {
+                fullCartContent.innerHTML = '<h3>Error loading cart</h3>';
+            }
+        }
+
+        window.updateAndRefresh = async (cartId, action) => {
+            await window.updateCartItem(cartId, action);
+            await renderFullCart();
+        };
+
+        fullCheckoutBtn.addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/checkout', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    fullCheckoutMessage.textContent = data.message;
+                    fullCheckoutMessage.style.color = 'green';
+                    fullCartTotal.style.display = 'none';
+                    fullCheckoutBtn.style.display = 'none';
+                    await renderFullCart();
+                } else {
+                    fullCheckoutMessage.textContent = data.error || 'Checkout failed';
+                    fullCheckoutMessage.style.color = 'red';
+                }
+            } catch (e) {
+                fullCheckoutMessage.textContent = 'Network error during checkout.';
+            }
+        });
+
+        // Delay to ensure auth state is checked by main.js
+        setTimeout(() => {
+            renderFullCart();
+        }, 500);
+    });
+</script>
+{% endblock %}

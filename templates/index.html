@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>Welcome to ShopZon</h1>
+        <p>Discover incredible deals on premium electronics and accessories.</p>
+    </div>
+</section>
+
+<!-- Product Grid -->
+<section class="products-section">
+    <h2 class="section-title">Trending Products</h2>
+    <div class="product-grid" id="productGrid">
+        <!-- Products will be injected here by JS -->
+        <div class="loading-spinner">Loading products...</div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // We can rely on main.js to fetch /api/products and render the grid.
+</script>
+{% endblock %}

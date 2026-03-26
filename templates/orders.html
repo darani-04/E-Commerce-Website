@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders{% endblock %}
+
+{% block styles %}
+<style>
+    .orders-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+    .order-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+    .order-item-row {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .order-status {
+        font-weight: bold;
+        color: var(--accent-color);
+        background: #fff3e0;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <h1 id="ordersPageHeader" style="color: var(--primary-color); margin-bottom: 20px;">Order History</h1>
+    <div id="ordersContent">
+        <div class="loading-spinner">Loading your orders...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(async () => {
+            const ordersContent = document.getElementById('ordersContent');
+            try {
+                // Fetch user info to update header
+                const userRes = await fetch('/api/user');
+                const userData = await userRes.json();
+                if (userData.loggedIn && userData.username) {
+                    document.getElementById('ordersPageHeader').textContent = `${userData.username}'s Order History`;
+                }
+
+                const response = await fetch('/api/orders');
+                if (response.status === 401) {
+                    ordersContent.innerHTML = '<h3>Please sign in to view your orders.</h3>';
+                    return;
+                }
+                
+                const orders = await response.json();
+                if (!orders || orders.length === 0) {
+                    ordersContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h3 style="color: #666; font-weight: normal;">You haven't placed any orders yet.</h3>
+                            <a href="/" class="btn btn-primary" style="margin-top: 20px; display: inline-block; padding: 10px 20px; text-decoration: none;">Start Shopping</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                ordersContent.innerHTML = '';
+                
+                orders.forEach(order => {
+                    const card = document.createElement('div');
+                    card.className = 'order-card';
+                    
+                    const dateFormatted = new Date(order.order_date).toLocaleString();
+                    const totalFormatted = `₹${order.total_amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    
+                    let itemsHtml = '';
+                    if (order.items && order.items.length > 0) {
+                        order.items.forEach(item => {
+                            itemsHtml += `
+                            <div class="order-item-row">
+                                <strong style="flex: 1;">${item.name}</strong>
+                                <span>₹${(item.price * item.quantity).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                            </div>`;
+                        });
+                    }
+                    
+                    card.innerHTML = `
+                        <div class="order-header">
+                            <div>
+                                <strong>Order #${order.id}</strong><br>
+                                <small>${dateFormatted}</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="order-status">${order.status}</div>
+                                <strong>Total: ${totalFormatted}</strong>
+                            </div>
+                        </div>
+                        <div class="order-items">
+                            ${itemsHtml}
+                        </div>
+                    `;
+                    ordersContent.appendChild(card);
+                });
+                
+            } catch (err) {
+                ordersContent.innerHTML = '<h3>Error loading orders.</h3>';
+            }
+        }, 500); // 500ms delay ensures auth is checked
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopZon - {% block title %}Find Everything You Need{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="/"><i class="fa-solid fa-truck-fast"></i> ShopZon</a>
+            </div>
+            <div class="nav-search">
+                <input type="text" id="searchInput" placeholder="Search for products, brands and more...">
+                <button type="button" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="nav-actions">
+                <div id="authContainer" class="nav-item">
+                    <!-- Dynamic auth state -->
+                    <button id="loginBtnTrigger" class="nav-btn auth-btn">
+                        <span class="small-text">Hello, sign in</span>
+                        <span class="bold-text">Account & Lists</span>
+                    </button>
+                </div>
+                
+                <div class="nav-item cart-btn" id="openCartBtn">
+                    <div class="cart-icon-wrapper">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span class="cart-count" id="cartCountBadge">0</span>
+                    </div>
+                    <span class="bold-text">Cart Sidebar</span>
+                </div>
+            </div>
+        </div>
+        <div class="nav-bottom">
+            <ul>
+                <li><a href="/"><i class="fa-solid fa-home"></i> Home</a></li>
+                <li><a href="/deals">Today's Deals</a></li>
+                <li><a href="/menu">Menu</a></li>
+                <li><a href="/cart-page">Cart Page</a></li>
+                <li><a href="/my-orders">My Order</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+    {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-top">
+            <a href="#">Back to top</a>
+        </div>
+        <div class="footer-content">
+            <div class="footer-col">
+                <h3>Get to Know Us</h3>
+                <a href="#">Careers</a>
+                <a href="#">Blog</a>
+                <a href="#">About ShopZon</a>
+            </div>
+            <div class="footer-col">
+                <h3>Make Money with Us</h3>
+                <a href="#">Sell products on ShopZon</a>
+                <a href="#">Sell on ShopZon Business</a>
+                <a href="#">Become an Affiliate</a>
+            </div>
+            <div class="footer-col">
+                <h3>Let Us Help You</h3>
+                <a href="#">Your Account</a>
+                <a href="/my-orders">Your Orders</a>
+                <a href="#">Shipping Rates & Policies</a>
+                <a href="#">Help</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="logo-bottom"><i class="fa-solid fa-truck-fast"></i> ShopZon</div>
+            <p>&copy; 2026 ShopZon, Inc. or its affiliates. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    
+    <!-- Auth Modal (Login / Register) -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <span class="close-modal" id="closeAuthModal">&times;</span>
+            
+            <div class="auth-box" id="loginBox">
+                <h2>Sign in</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Continue</button>
+                    <div class="auth-error" id="loginError"></div>
+                </form>
+                <div class="auth-divider"><span>New to ShopZon?</span></div>
+                <button type="button" class="btn btn-secondary btn-block" id="showRegisterBtn">Create your ShopZon account</button>
+            </div>
+
+            <div class="auth-box hidden" id="registerBox">
+                <h2>Create account</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerUsername">Your name</label>
+                        <input type="text" id="registerUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" required placeholder="At least 6 characters">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Verify completely & Create</button>
+                    <div class="auth-error" id="registerError"></div>
+                </form>
+                <div class="auth-footer">
+                    Already have an account? <a href="#" id="showLoginBtn">Sign in <i class="fa-solid fa-caret-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar Cart -->
+    <div id="cartSidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>Shopping Cart</h2>
+            <button class="close-sidebar" id="closeCartBtn">&times;</button>
+        </div>
+        <div class="sidebar-content" id="cartContent">
+            <!-- Cart items injected here -->
+            <div class="empty-cart">Your cart is empty.</div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="cart-total">
+                <span>Subtotal:</span>
+                <span class="total-amount" id="cartTotalAmount">$0.00</span>
+            </div>
+            <button class="btn btn-primary btn-block btn-checkout" id="checkoutBtn" disabled>Proceed to Checkout</button>
+            <div class="checkout-message" id="checkoutMessage"></div>
+        </div>
+    </div>
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

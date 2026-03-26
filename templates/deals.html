@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Today's Deals{% endblock %}
+
+{% block content %}
+<section class="products-section" style="padding-top: 40px;">
+    <h1 style="text-align: center; color: var(--primary-color);">Today's Deals</h1>
+    <p style="text-align: center; margin-bottom: 30px;">Huge discounts on our best selling items.</p>
+    
+    <div class="product-grid" id="productGrid" data-endpoint="/api/products?is_deal=1">
+        <div class="loading-spinner">Loading deals...</div>
+    </div>
+</section>
+{% endblock %}
