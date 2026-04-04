@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}My Wishlist{% endblock %}
+
+{% block styles %}
+<style>
+    .wishlist-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .wishlist-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    .wishlist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .wishlist-empty {
+        text-align: center;
+        padding: 3rem;
+        background: #f9f9f9;
+        border-radius: 8px;
+        color: #666;
+    }
+
+    .product-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        background: white;
+        transition: box-shadow 0.3s;
+    }
+
+    .product-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        object-fit: contain;
+        margin-bottom: 1rem;
+    }
+
+    .product-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .product-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #B12704;
+        margin-bottom: 1rem;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .card-actions button {
+        flex: 1;
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .btn-add-cart {
+        background-color: #FFD814;
+        color: #0F1111;
+    }
+
+    .btn-add-cart:hover {
+        background-color: #F7CA00;
+    }
+
+    .btn-remove {
+        background-color: #FFe3e3;
+        color: #c90000;
+    }
+    .btn-remove:hover {
+        background-color: #ffc9c9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wishlist-container">
+    <h1 class="wishlist-title">My Wishlist</h1>
+    <div id="wishlistContent">
+        <!-- Rendered by JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadWishlist();
+    });
+
+    async function loadWishlist() {
+        try {
+            const response = await fetch('/api/wishlist');
+            const wishlistContainer = document.getElementById('wishlistContent');
+            if (response.status === 401) {
+                wishlistContainer.innerHTML = '<div class="wishlist-empty">Please sign in to view your wishlist.</div>';
+                return;
+            }
+
+            const items = await response.json();
+            if (!items || items.length === 0) {
+                wishlistContainer.innerHTML = '<div class="wishlist-empty">Your wishlist is empty. Explore products to add them here!</div>';
+                return;
+            }
+            
+            let html = '<div class="wishlist-grid">';
+            items.forEach(item => {
+                html += `
+                    <div class="product-card">
+                        <img src="${item.image_url}" alt="${item.name}" class="product-image">
+                        <h3 class="product-name">${item.name}</h3>
+                        <div class="product-price">₹${item.price.toFixed(2)}</div>
+                        <div class="card-actions">
+                            <button class="btn-add-cart" onclick="addToCartFromWishlist(${item.product_id})">Add to Cart</button>
+                            <button class="btn-remove" onclick="removeFromWishlist(${item.product_id})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            wishlistContainer.innerHTML = html;
+        } catch (e) {
+            console.error('Error loading wishlist:', e);
+        }
+    }
+
+    async function removeFromWishlist(product_id) {
+        try {
+            const res = await fetch('/api/wishlist/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id })
+            });
+
+            if (res.ok) {
+                loadWishlist(); // refresh
+            }
+        } catch (e) {
+            console.error('Error removing product from wishlist', e);
+        }
+    }
+
+    async function addToCartFromWishlist(product_id) {
+        try {
+            const res = await fetch('/api/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id })
+            });
+            if (res.ok) {
+                // Remove from wishlist? Not strictly necessary, but can be a feature. 
+                // Let's just update cart sidebar. The global main.js has handleCart.
+                // We could dispatch an event or rely on users clicking cart sidebar button.
+                if (typeof loadCart === 'function') {
+                    loadCart();
+                } else if (typeof updateCartCount === 'function') {
+                    updateCartCount();
+                }
+                alert('Added to cart!');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+</script>
+{% endblock %}

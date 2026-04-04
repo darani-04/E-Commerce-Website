@@ -215,6 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="btn btn-primary btn-block" onclick="window.addToCart(${product.id}, event)">
                     Add to Cart
                 </button>
+                <button class="btn btn-secondary btn-block" style="margin-top: 5px; background: #ffe4e1; color: #d00000; border: none; padding: 5px; cursor: pointer; height: 40px; border-radius: 8px;" onclick="window.addToWishlist(${product.id}, event)">
+                    <i class="fa-solid fa-heart"></i> Add to Wishlist
+                </button>
             `;
             productGrid.appendChild(card);
         });
@@ -299,6 +302,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose functions to window so inline onclick handlers in HTML work
     window.addToCart = addToCart;
     window.updateCartItem = updateCartItem;
+    window.addToWishlist = addToWishlist;
+
+    /**
+     * Add a product to wishlist via API
+     */
+    async function addToWishlist(productId, event) {
+        if (!currentUser) {
+            openModal(loginBox, registerBox); // Require login first
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/wishlist/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId })
+            });
+
+            if (response.ok) {
+                if (event && event.target) {
+                    let button = event.target;
+                    // In case we clicked the icon inside the button
+                    if(button.tagName === 'I') button = button.parentElement;
+                    const originalText = button.innerHTML;
+                    button.innerHTML = "Added to wishlist!";
+                    button.style.backgroundColor = "#ffc0cb";
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.backgroundColor = "#ffe4e1";
+                    }, 2000);
+                } else {
+                    alert("Added to wishlist!");
+                }
+            }
+        } catch (error) {
+            console.error('Error adding to wishlist:', error);
+        }
+    }
 
     /**
      * Login Submit

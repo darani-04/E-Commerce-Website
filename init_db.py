@@ -42,6 +42,18 @@ def init_db():
             FOREIGN KEY(product_id) REFERENCES products(id)
         )
     ''')
+    
+    # Create Wishlist table
+    c.execute('''
+        CREATE TABLE wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(product_id) REFERENCES products(id),
+            UNIQUE(user_id, product_id)
+        )
+    ''')
 
     # Create Orders table
     c.execute('''

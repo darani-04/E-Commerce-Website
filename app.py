@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_ecom_key_123'  # Needed for session management
@@ -11,6 +12,14 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def index():
@@ -31,6 +40,10 @@ def cart_page():
 @app.route('/my-orders')
 def my_orders():
     return render_template('orders.html')
+
+@app.route('/wishlist')
+def wishlist():
+    return render_template('wishlist.html')
 
 # ================= API ENDPOINTS =================
 
@@ -108,10 +121,8 @@ def get_products():
     return jsonify([dict(ix) for ix in products])
 
 @app.route('/api/cart', methods=['GET'])
+@login_required
 def view_cart():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-        
     user_id = session['user_id']
     conn = get_db_connection()
     
@@ -127,10 +138,8 @@ def view_cart():
     return jsonify([dict(ix) for ix in cart_items])
 
 @app.route('/api/cart/add', methods=['POST'])
+@login_required
 def add_to_cart():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-        
     user_id = session['user_id']
     data = request.json
     product_id = data.get('product_id')
@@ -157,10 +166,8 @@ def add_to_cart():
     return jsonify({'message': 'Product added to cart'}), 200
 
 @app.route('/api/cart/update', methods=['POST'])
+@login_required
 def update_cart_item():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-        
     user_id = session['user_id']
     data = request.json
     cart_id = data.get('cart_id')
@@ -190,10 +197,8 @@ def update_cart_item():
     return jsonify({'message': 'Cart updated'}), 200
 
 @app.route('/api/checkout', methods=['POST'])
+@login_required
 def checkout():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-        
     user_id = session['user_id']
     conn = get_db_connection()
     cur = conn.cursor()
@@ -228,10 +233,8 @@ def checkout():
     return jsonify({'message': 'Checkout successful. Thank you for your purchase!'}), 200
 
 @app.route('/api/orders', methods=['GET'])
+@login_required
 def get_orders():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-        
     user_id = session['user_id']
     conn = get_db_connection()
     cur = conn.cursor()
@@ -252,6 +255,61 @@ def get_orders():
         
     conn.close()
     return jsonify(result), 200
+
+@app.route('/api/wishlist', methods=['GET'])
+@login_required
+def get_wishlist():
+    user_id = session['user_id']
+    conn = get_db_connection()
+    query = '''
+        SELECT w.id as wishlist_id, p.id as product_id, p.name, p.price, p.image_url, p.category, p.description
+        FROM wishlist w
+        JOIN products p ON w.product_id = p.id
+        WHERE w.user_id = ?
+    '''
+    items = conn.execute(query, (user_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(ix) for ix in items]), 200
+
+@app.route('/api/wishlist/add', methods=['POST'])
+@login_required
+def add_to_wishlist():
+    user_id = session['user_id']
+    data = request.json
+    product_id = data.get('product_id')
+    
+    if not product_id:
+        return jsonify({'error': 'Product ID is required'}), 400
+        
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute('INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)', (user_id, product_id))
+        conn.commit()
+        return jsonify({'message': 'Added to wishlist'}), 200
+    except sqlite3.IntegrityError:
+        return jsonify({'message': 'Already in wishlist'}), 200
+    finally:
+        conn.close()
+
+@app.route('/api/wishlist/remove', methods=['POST'])
+@login_required
+def remove_from_wishlist():
+    user_id = session['user_id']
+    data = request.json
+    product_id = data.get('product_id')
+    
+    if not product_id:
+        return jsonify({'error': 'Product ID is required'}), 400
+        
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM wishlist WHERE user_id = ? AND product_id = ?', (user_id, product_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Removed from wishlist'}), 200
 
 
 if __name__ == '__main__':
