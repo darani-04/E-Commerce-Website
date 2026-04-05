@@ -53,6 +53,11 @@ python app.py
 Open your web browser (Chrome, Firefox, etc.) and go to:
 [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
 
+🌐 Live Demo
+👉 Live Project: https://e-commerce-website-216f.onrender.com/
+
+
+
 ## Project Structure Explained
 - `app.py`: The main Flask server code with REST API endpoints for user authentication, fetching products, and managing the cart.
 - `init_db.py`: A Python script that executes SQL to create the database schema (`database.db`) and inserts sample store items.
